@@ -26,7 +26,7 @@ where
     let sample_rate = config.sample_rate.0 as f64;
     let channels = config.channels as usize;
 
-    let mut c = pink();
+    let mut c = pink() | pink();
 
     c.reset(Some(sample_rate));
 
