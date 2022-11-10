@@ -1,10 +1,19 @@
-//! Make some noise via cpal.
-#![allow(clippy::precedence)]
+// #![allow(clippy::precedence)]
 #![allow(unreachable_code)]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use fundsp::hacker::*;
+use std::sync::mpsc::{self, Receiver};
 
 fn main() {
+    // create a channel to receive a notification when ctrl+c was pressed
+    let (tx_ctrl_c, rx_ctrl_c) = mpsc::channel();
+
+    ctrlc::set_handler(move || {
+        println!("Ctrl+C pressed.");
+        tx_ctrl_c.send(()).unwrap();
+    })
+    .expect("Error setting Ctrl-C handler");
+
     let host = cpal::default_host();
 
     let device = host
@@ -13,13 +22,17 @@ fn main() {
     let config = device.default_output_config().unwrap();
 
     match config.sample_format() {
-        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into()).unwrap(),
-        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into()).unwrap(),
-        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into()).unwrap(),
+        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), &rx_ctrl_c).unwrap(),
+        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), &rx_ctrl_c).unwrap(),
+        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), &rx_ctrl_c).unwrap(),
     }
 }
 
-fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig) -> Result<(), anyhow::Error>
+fn run<T>(
+    device: &cpal::Device,
+    config: &cpal::StreamConfig,
+    rx_ctrl_c: &Receiver<()>,
+) -> Result<(), anyhow::Error>
 where
     T: cpal::Sample,
 {
@@ -43,9 +56,8 @@ where
     )?;
     stream.play()?;
 
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(60));
-    }
+    // wait for Ctrl+C
+    _ = rx_ctrl_c.recv();
 
     Ok(())
 }
