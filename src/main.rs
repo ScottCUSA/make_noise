@@ -1,15 +1,14 @@
-// #![allow(clippy::precedence)]
 #![allow(unreachable_code)]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use fundsp::hacker::*;
 use std::sync::mpsc::{self, Receiver};
 
 fn main() {
-    // create a channel to receive a notification when ctrl+c was pressed
+    // create a channel to communicate ctrl+c was pressed
     let (tx_ctrl_c, rx_ctrl_c) = mpsc::channel();
 
     ctrlc::set_handler(move || {
-        println!("Ctrl+C pressed.");
+        println!("\nCtrl+C pressed.");
         tx_ctrl_c.send(()).unwrap();
     })
     .expect("Error setting Ctrl-C handler");
